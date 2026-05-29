@@ -1,4 +1,8 @@
 
+# Magnolia App - Description
+
+App that shows a map with Magnolia locations in the city, allowing users to visit them.
+
 # Magnolia App — Screens
 
 Below are the main screens for the Magnolia app.
@@ -32,4 +36,13 @@ _Simple settings screen (toggles like Dark Mode)._
 <p align="center">
 	<img src="images/SettingsScreen.png" alt="Settings Screen" height="700"/>
 </p>
+
+---
+
+## Technologies Used
+
+- Retrofit - used to access the local Magnolia API and load the magnolia data.
+- Room Database - used to store the magnolias that the user has visited.
+- osmdroid - map library used for the OpenStreetMap view.
+- Coil - image loading for Magnolia photos.
 
