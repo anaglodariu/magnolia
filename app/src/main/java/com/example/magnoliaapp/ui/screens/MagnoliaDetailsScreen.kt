@@ -1,5 +1,6 @@
 package com.example.magnoliaapp.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -22,10 +23,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.magnoliaapp.model.Magnolia
 import com.example.magnoliaapp.ui.theme.MagnoliaAppTheme
 
@@ -113,9 +116,36 @@ fun MagnoliaDetailsContent(
         )
 
         AsyncImage(
-            model = magnolia.imageUrl,
+            model = ImageRequest.Builder(
+                context = LocalContext.current
+            )
+                .data("http://10.0.2.2:5000/images/Photo1.jpeg")
+                .setHeader("Connection", "close")
+                .diskCachePolicy(coil.request.CachePolicy.DISABLED)
+                .memoryCachePolicy(coil.request.CachePolicy.DISABLED)
+                .crossfade(true)
+                .build(),
+
+//            placeholder = painterResource(
+//                R.drawable.loading_img
+//            ),
+//
+//            error = painterResource(
+//                R.drawable.ic_broken_image
+//            ),
 
             contentDescription = magnolia.name,
+
+            onSuccess = {
+                Log.d("COIL", "SUCCESS")
+            },
+
+            onError = {
+                Log.e(
+                    "COIL",
+                    it.result.throwable.stackTraceToString()
+                )
+            },
 
             modifier = Modifier
                 .fillMaxWidth()
@@ -123,6 +153,18 @@ fun MagnoliaDetailsContent(
 
             contentScale = ContentScale.Crop
         )
+
+//        AsyncImage(
+//            model = "http://10.0.2.2:5000/images/Photo14.jpeg",
+//
+//            contentDescription = magnolia.name,
+//
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(300.dp),
+//
+//            contentScale = ContentScale.Crop
+//        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
