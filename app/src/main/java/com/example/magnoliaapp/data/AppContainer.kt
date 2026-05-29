@@ -1,5 +1,6 @@
 package com.example.magnoliaapp.data
 
+import android.content.Context
 import com.example.magnoliaapp.network.MagnoliaApiService
 import retrofit2.Retrofit
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -11,6 +12,8 @@ import okhttp3.MediaType.Companion.toMediaType
  */
 interface AppContainer {
     val magnoliasRepository: MagnoliasRepository
+    val visitedMagnoliasRepository: VisitedMagnoliasRepository
+
 }
 
 /**
@@ -18,7 +21,7 @@ interface AppContainer {
  *
  * Variables are initialized lazily and the same instance is shared across the whole app.
  */
-class DefaultAppContainer : AppContainer {
+class DefaultAppContainer(private val context: Context) : AppContainer {
     private val baseUrl =  "http://10.0.2.2:5000/"
 
     /**
@@ -42,4 +45,17 @@ class DefaultAppContainer : AppContainer {
     override val magnoliasRepository: MagnoliasRepository by lazy {
         NetworkMagnoliasRepository(retrofitService)
     }
+
+    override val visitedMagnoliasRepository:
+            VisitedMagnoliasRepository by lazy {
+
+        OfflineVisitedMagnoliasRepository(
+
+            MagnoliaDatabase
+                .getDatabase(context)
+                .visitedMagnoliaDao()
+        )
+    }
+
+
 }

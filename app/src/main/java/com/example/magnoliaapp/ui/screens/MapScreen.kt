@@ -1,6 +1,7 @@
 package com.example.magnoliaapp.ui.screens
 
 import android.content.Context
+import android.graphics.Color
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,20 +23,29 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.core.content.ContextCompat
 
 @Composable
 fun MapScreen(
     onMagnoliaClick: (Magnolia) -> Unit,
     modifier: Modifier = Modifier,
     magnoliaViewModel: MagnoliaViewModel =
-        viewModel(factory = MagnoliaViewModel.Factory)
+        viewModel(factory = MagnoliaViewModel.Factory),
+    visitedMagnoliaViewModel: VisitedMagnoliaViewModel =
+        viewModel(factory = VisitedMagnoliaViewModel.Factory)
 ) {
-    // Refactored to call a stateless content Composable
+    val visitedIds by
+    visitedMagnoliaViewModel
+        .visitedMagnoliaIds
+        .collectAsState()
+
     MapScreenContent(
         uiState = magnoliaViewModel.magnoliaUiState,
+        visitedIds = visitedIds,
         onMagnoliaClick = onMagnoliaClick,
-        modifier = modifier,
-        onDetailsSuccess = { magnoliaViewModel.getMagnolias() }
+        modifier = modifier
     )
 }
 
@@ -47,46 +57,33 @@ fun MapScreen(
 @Composable
 fun MapScreenContent(
     uiState: MagnoliaUiState,
+    visitedIds: Set<Int>,
     onMagnoliaClick: (Magnolia) -> Unit,
-    modifier: Modifier = Modifier,
-    onDetailsSuccess: () -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
+
     when (uiState) {
+
         is MagnoliaUiState.Loading -> {
-            MapLoadingScreen(modifier = modifier)
+            MapLoadingScreen(modifier)
         }
 
         is MagnoliaUiState.Error -> {
-            MapErrorScreen(modifier = modifier)
+            MapErrorScreen(modifier)
         }
 
         is MagnoliaUiState.Success -> {
-            Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
 
-//        Text(
-//            text =
-//                "Loaded ${uiState.magnolias.size} magnolias\n\n" +
-//                        uiState.magnolias.joinToString("\n") {
-//                            it.name
-//                        }
-//        )
-                MagnoliaMap(
-                    magnolias = uiState.magnolias,
-                    onMagnoliaClick = onMagnoliaClick,
-                    modifier = modifier
-                )
-    }
+            MagnoliaMap(
+                magnolias = uiState.magnolias,
+                visitedIds = visitedIds,
+                onMagnoliaClick = onMagnoliaClick,
+                modifier = modifier
+            )
         }
 
         is MagnoliaUiState.DetailsSuccess -> {
-            /*
-             * This state is used by MagnoliaDetailsScreen.
-             * If we arrive here, simply reload all magnolias.
-             */
-            MapLoadingScreen(modifier = modifier)
+            MapLoadingScreen(modifier)
         }
     }
 }
@@ -94,22 +91,35 @@ fun MapScreenContent(
 @Composable
 fun MagnoliaMap(
     magnolias: List<Magnolia>,
+    visitedIds: Set<Int>,
     onMagnoliaClick: (Magnolia) -> Unit,
     modifier: Modifier = Modifier
 ) {
 
     val context = LocalContext.current
+
     val mapView = rememberMapView(context)
 
     AndroidView(
         modifier = modifier.fillMaxSize(),
+
         factory = { mapView },
+
         update = { view ->
+
             view.overlays.clear()
+
             view.controller.setZoom(11.0)
-            view.controller.setCenter(GeoPoint(44.4268, 26.1025))
+
+            view.controller.setCenter(
+                GeoPoint(
+                    44.4268,
+                    26.1025
+                )
+            )
 
             magnolias.forEach { magnolia ->
+
                 val marker = Marker(view)
 
                 marker.position = GeoPoint(
@@ -119,8 +129,37 @@ fun MagnoliaMap(
 
                 marker.title = magnolia.name
 
+                // IMPORTANT
+                marker.setAnchor(
+                    Marker.ANCHOR_CENTER,
+                    Marker.ANCHOR_BOTTOM
+                )
+
+                if (magnolia.id in visitedIds) {
+
+                    marker.icon =
+                        ContextCompat.getDrawable(
+                            context,
+                            org.osmdroid.library.R.drawable.marker_default
+                        )
+
+                    marker.icon?.setTint(Color.GREEN)
+
+                } else {
+
+                    marker.icon =
+                        ContextCompat.getDrawable(
+                            context,
+                            org.osmdroid.library.R.drawable.marker_default
+                        )
+
+                    marker.icon?.setTint(Color.BLACK)
+                }
+
                 marker.setOnMarkerClickListener { _, _ ->
+
                     onMagnoliaClick(magnolia)
+
                     true
                 }
 
@@ -185,9 +224,12 @@ fun MapErrorScreen(
 fun MapScreenPreview() {
 
     MagnoliaAppTheme {
-        // Use MapScreenContent instead of MapScreen to avoid ViewModel instantiation in Preview
+
         MapScreenContent(
-            uiState = MagnoliaUiState.Success(emptyList()),
+            uiState = MagnoliaUiState.Success(
+                emptyList()
+            ),
+            visitedIds = emptySet(),
             onMagnoliaClick = {}
         )
     }

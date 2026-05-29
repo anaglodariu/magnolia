@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,62 +38,71 @@ fun MagnoliaDetailsScreen(
     magnoliaId: Int,
     modifier: Modifier = Modifier,
     magnoliaViewModel: MagnoliaViewModel =
-        viewModel(factory = MagnoliaViewModel.Factory)
+        viewModel(factory = MagnoliaViewModel.Factory),
+
+    visitedMagnoliaViewModel: VisitedMagnoliaViewModel =
+        viewModel(factory = VisitedMagnoliaViewModel.Factory)
 ) {
 
-    LaunchedEffect(magnoliaId) {
+    val visitedIds by
+    visitedMagnoliaViewModel
+        .visitedMagnoliaIds
+        .collectAsState()
 
+    LaunchedEffect(magnoliaId) {
         magnoliaViewModel.getMagnolia(magnoliaId)
     }
 
     when (val uiState = magnoliaViewModel.magnoliaUiState) {
 
         is MagnoliaUiState.Loading -> {
-
             LoadingScreen()
         }
 
         is MagnoliaUiState.Error -> {
-
             ErrorScreen()
         }
 
         is MagnoliaUiState.DetailsSuccess -> {
 
-            MagnoliaDetailsContent(
+            val isVisited =
+                uiState.magnolia.id in visitedIds
 
+            MagnoliaDetailsContent(
                 magnolia = uiState.magnolia,
+                isVisited = isVisited,
+
+                onVisitedClick = {
+
+                    if (isVisited) {
+
+                        visitedMagnoliaViewModel.unmarkVisited(
+                            uiState.magnolia.id
+                        )
+
+                    } else {
+
+                        visitedMagnoliaViewModel.markVisited(
+                            uiState.magnolia.id
+                        )
+                    }
+                },
 
                 modifier = modifier
             )
         }
 
-        is MagnoliaUiState.Success -> {
-            Column {
-
-            Text(
-                text = "Loaded ${uiState.magnolias.size} magnolias"
-            )
-
-            uiState.magnolias.forEach {
-
-                Text(it.name)
-            }
-    }
-        }
+        is MagnoliaUiState.Success -> {}
     }
 }
 
 @Composable
 fun MagnoliaDetailsContent(
     magnolia: Magnolia,
+    isVisited: Boolean,
+    onVisitedClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
-    var visited by rememberSaveable {
-        mutableStateOf(false)
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -183,23 +193,14 @@ fun MagnoliaDetailsContent(
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
-
-            onClick = {
-
-                visited = !visited
-            }
-
+            onClick = onVisitedClick
         ) {
 
             Text(
-
-                text =
-
-                    if (visited)
-                        "Visited ✓"
-
-                    else
-                        "Mark as Visited"
+                if (isVisited)
+                    "Visited ✓"
+                else
+                    "Mark as Visited"
             )
         }
     }
@@ -248,14 +249,15 @@ fun MagnoliaDetailsPreview() {
     MagnoliaAppTheme {
 
         MagnoliaDetailsContent(
-
             magnolia = Magnolia(
                 id = 1,
                 name = "Magnolia Cișmigiu",
                 latitude = 44.4352,
                 longitude = 26.0910,
                 imageUrl = ""
-            )
+            ),
+            isVisited = true,
+            onVisitedClick = {}
         )
     }
 }
